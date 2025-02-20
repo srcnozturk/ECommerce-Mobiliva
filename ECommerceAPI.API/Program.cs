@@ -6,6 +6,7 @@ using ECommerceAPI.Infrastructure.Interfaces;
 using ECommerceAPI.Infrastructure.Repositories;
 using ECommerceAPI.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 builder.Services.AddAutoMapper(typeof(ProductMappingProfile).Assembly);
+builder.Services.AddSingleton<IConnectionMultiplexer>(opt =>
+    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")));
+builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

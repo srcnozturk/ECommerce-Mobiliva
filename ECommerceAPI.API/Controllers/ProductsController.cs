@@ -27,7 +27,7 @@ namespace ECommerceAPI.API.Controllers
 
         [HttpGet("get")]
         public async Task<ActionResult<ApiResponse<List<ProductDto>>>> GetProducts(
-          [FromQuery] string category = null)
+          [FromQuery] string? category = null)
         {
             try
             {
