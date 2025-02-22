@@ -4,10 +4,7 @@ using ECommerceAPI.Core;
 using ECommerceAPI.Core.Dtos;
 using ECommerceAPI.Core.Entities;
 using ECommerceAPI.Core.Interfaces;
-using ECommerceAPI.Infrastructure.Repositories;
-using ECommerceAPI.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Mail;
 
 namespace ECommerceAPI.API.Controllers
 {
