@@ -2,6 +2,7 @@ using ECommerceAPI.API.Middleware;
 using ECommerceAPI.Application.Mapping;
 using ECommerceAPI.Core.Interfaces;
 using ECommerceAPI.Infrastructure;
+using ECommerceAPI.Infrastructure.BackgroundServices;
 using ECommerceAPI.Infrastructure.Interfaces;
 using ECommerceAPI.Infrastructure.Repositories;
 using ECommerceAPI.Infrastructure.Services;
@@ -19,7 +20,11 @@ builder.Services.AddAutoMapper(typeof(ProductMappingProfile).Assembly);
 builder.Services.AddSingleton<IConnectionMultiplexer>(opt =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")));
 builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
+builder.Services.AddSingleton<IRabbitMQService, RabbitMQService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Background service
+builder.Services.AddHostedService<MailSenderBackgroundService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();

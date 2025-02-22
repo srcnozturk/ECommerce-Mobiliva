@@ -6,4 +6,5 @@ public interface IOrderRepository
 {
     Task<OrderEntity> GetOrderWithDetailsAsync(Guid id);
     Task<IEnumerable<OrderEntity>> GetOrdersByCustomerEmailAsync(string email);
+    Task<OrderEntity> CreateOrderWithDetailsAsync(OrderEntity order);
 }

@@ -1,8 +1,13 @@
 ﻿using AutoMapper;
 using ECommerceAPI.Application.Dtos;
 using ECommerceAPI.Core;
+using ECommerceAPI.Core.Dtos;
+using ECommerceAPI.Core.Entities;
 using ECommerceAPI.Core.Interfaces;
+using ECommerceAPI.Infrastructure.Repositories;
+using ECommerceAPI.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mail;
 
 namespace ECommerceAPI.API.Controllers
 {
@@ -12,17 +17,23 @@ namespace ECommerceAPI.API.Controllers
     {
 
         private readonly IProductRepository _productRepository;
+        private readonly IOrderRepository _orderRepository;
         private readonly ICacheService _cacheService;
+        private readonly IRabbitMQService _rabbitMQService;
         private readonly IMapper _mapper;
 
         public ProductsController(
             IProductRepository productRepository,
             ICacheService cacheService,
-            IMapper mapper)
+            IMapper mapper,
+            IRabbitMQService rabbitMQService,
+            IOrderRepository orderRepository)
         {
             _productRepository = productRepository;
             _cacheService = cacheService;
             _mapper = mapper;
+            _rabbitMQService = rabbitMQService;
+            _orderRepository = orderRepository;
         }
 
         [HttpGet("get")]
@@ -64,6 +75,46 @@ namespace ECommerceAPI.API.Controllers
                 {
                     Success = false,
                     Message = "An error occurred while retrieving products"
+                });
+            }
+        }
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<Guid>>> CreateOrder(
+            [FromBody] CreateOrderRequest request)
+        {
+            try
+            {
+                // Sipariş oluştur
+                var order = _mapper.Map<OrderEntity>(request);
+
+
+                // Siparişi kaydet
+                var createdOrder = await _orderRepository.CreateOrderWithDetailsAsync(order);
+
+                // Mail gönderimi için kuyruğa ekle
+                var emailMessage = new EmailMessageDto
+                {
+                    To = order.CustomerEmail,
+                    Subject = "Your Order Confirmation",
+                    Body = $"Dear {order.CustomerName}, your order #{createdOrder.Id} has been received."
+                };
+
+                _rabbitMQService.PublishMessage("SendMail", emailMessage);
+
+                return Ok(new ApiResponse<Guid>
+                {
+                    Status = Status.Success,
+                    ResultMessage = "Order created successfully",
+                    Data = createdOrder.Id
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<Guid>
+                {
+                    Status = Status.Failed,
+                    ResultMessage = "An error occurred while creating the order",
+                    ErrorCode = "ORDER_CREATE_ERROR"
                 });
             }
         }
