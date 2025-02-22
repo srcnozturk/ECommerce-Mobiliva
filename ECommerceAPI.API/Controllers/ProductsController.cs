@@ -1,10 +1,10 @@
-using AutoMapper;
 using ECommerceAPI.Application;
+using ECommerceAPI.Application.Commands;
 using ECommerceAPI.Application.Dtos;
+using ECommerceAPI.Application.Queries;
 using ECommerceAPI.Core;
-using ECommerceAPI.Core.Dtos;
-using ECommerceAPI.Core.Entities;
-using ECommerceAPI.Core.Interfaces;
+using FluentValidation;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerceAPI.API.Controllers
@@ -13,55 +13,30 @@ namespace ECommerceAPI.API.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly IProductRepository _productRepository;
-        private readonly IOrderRepository _orderRepository;
-        private readonly ICacheService _cacheService;
-        private readonly IRabbitMQService _rabbitMQService;
-        private readonly IMapper _mapper;
         private readonly ILogger<ProductsController> _logger;
+        private readonly IMediator _mediator;
 
         public ProductsController(
-            IProductRepository productRepository,
-            ICacheService cacheService,
-            IMapper mapper,
-            IRabbitMQService rabbitMQService,
-            IOrderRepository orderRepository,
-            ILogger<ProductsController> logger)
+            ILogger<ProductsController> logger,
+            IMediator mediator)
         {
-            _productRepository = productRepository;
-            _cacheService = cacheService;
-            _mapper = mapper;
-            _rabbitMQService = rabbitMQService;
-            _orderRepository = orderRepository;
             _logger = logger;
+            _mediator = mediator;
         }
 
-        [HttpGet("get")]
+        /// <summary>
+        /// Gets products by category. If category is null, returns all products.
+        /// Products are retrieved from cache if available, otherwise from database.
+        /// </summary>
+        [HttpGet]
         public async Task<ActionResult<ApiResponse<List<ProductDto>>>> GetProducts(
-          [FromQuery] string? category = null)
+            [FromQuery] string? category = null)
         {
             try
             {
-                string cacheKey = $"products-{category ?? "all"}";
-                _logger.LogInformation("Getting products for category: {Category}", category ?? "all");
-
-                var cachedProducts = _cacheService.Get<List<ProductDto>>(cacheKey);
-                if (cachedProducts != null)
-                {
-                    _logger.LogInformation("Products retrieved from cache for category: {Category}", category ?? "all");
-                    return Ok(ApiResponseFactory.Success(cachedProducts));
-                }
-
-                var products = category == null
-                    ? await _productRepository.GetAllAsync()
-                    : await _productRepository.GetByCategoryAsync(category);
-
-                var productDtos = _mapper.Map<List<ProductDto>>(products);
-
-                _cacheService.Set(cacheKey, productDtos, TimeSpan.FromHours(1));
-                _logger.LogInformation("Products cached for category: {Category}", category ?? "all");
-
-                return Ok(ApiResponseFactory.Success(productDtos));
+                var query = new GetProductsQuery(category);
+                var result = await _mediator.Send(query);
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -71,32 +46,29 @@ namespace ECommerceAPI.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Creates a new order and sends confirmation email asynchronously via RabbitMQ.
+        /// </summary>
         [HttpPost]
         public async Task<ActionResult<ApiResponse<Guid>>> CreateOrder(
             [FromBody] CreateOrderRequest request)
         {
             try
             {
-                _logger.LogInformation("Creating order for customer: {CustomerEmail}", request.CustomerEmail);
-
-                var order = _mapper.Map<OrderEntity>(request);
-                var createdOrder = await _orderRepository.CreateOrderWithDetailsAsync(order);
-
-                var emailMessage = new EmailMessageDto
-                {
-                    To = order.CustomerEmail,
-                    Subject = "Your Order Confirmation",
-                    Body = $"Dear {order.CustomerName}, your order #{createdOrder.Id} has been received."
-                };
-
-                await _rabbitMQService.PublishMessageAsync("SendMail", emailMessage);
-                _logger.LogInformation("Order created successfully. OrderId: {OrderId}", createdOrder.Id);
-
-                return Ok(ApiResponseFactory.Success(createdOrder.Id, "Order created successfully"));
+                var command = new CreateOrderCommand(request);
+                var result = await _mediator.Send(command);
+                return Ok(result);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning("Validation failed for order request: {Errors}", 
+                    string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+                return BadRequest(ApiResponseFactory.ValidationError<Guid>(
+                    string.Join(", ", ex.Errors.Select(e => e.ErrorMessage))));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while creating order for customer: {CustomerEmail}", request.CustomerEmail);
+                _logger.LogError(ex, "Error occurred while creating order");
                 return StatusCode(500, ApiResponseFactory.OrderError<Guid>(
                     "An error occurred while processing your order"));
             }

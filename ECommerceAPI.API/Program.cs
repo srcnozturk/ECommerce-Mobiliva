@@ -10,6 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using Serilog;
 using Serilog.Events;
+using MediatR;
+using MediatR.Pipeline;
+using FluentValidation;
+using ECommerceAPI.Application.Behaviors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +36,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(ProductMappingProfile).Assembly);
 builder.Services.AddSingleton<IConnectionMultiplexer>(opt =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")));
+
+// Add MediatR
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssembly(typeof(ProductMappingProfile).Assembly);
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+});
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(ProductMappingProfile).Assembly);
+
 builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 builder.Services.AddSingleton<IRabbitMQService, RabbitMQService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
