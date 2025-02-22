@@ -1,87 +1,111 @@
-﻿using ECommerceAPI.Core.Interfaces;
+using ECommerceAPI.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using System.Text.Json;
 using System.Text;
 
 namespace ECommerceAPI.Infrastructure.Services;
 
-public class RabbitMQService : IRabbitMQService
+public class RabbitMQService : IRabbitMQService, IAsyncDisposable
 {
     private readonly IConnection _connection;
     private readonly IModel _channel;
+    private readonly ILogger<RabbitMQService> _logger;
+    private bool _disposed;
 
-    public RabbitMQService(IConfiguration configuration)
+    public RabbitMQService(IConfiguration configuration, ILogger<RabbitMQService> logger)
     {
-        var factory = new ConnectionFactory
-        {
-            HostName = configuration["RabbitMQ:Host"],
-            Port = int.Parse(configuration["RabbitMQ:Port"]),
-            UserName = configuration["RabbitMQ:Username"],
-            Password = configuration["RabbitMQ:Password"],
-            // SSL'i devre dışı bırakıyoruz
-            Ssl = new SslOption
-            {
-                Enabled = false
-            }
-        };
-
+        _logger = logger;
         try
         {
+            var factory = new ConnectionFactory
+            {
+                HostName = configuration["RabbitMQ:Host"],
+                Port = int.Parse(configuration["RabbitMQ:Port"]),
+                UserName = configuration["RabbitMQ:Username"],
+                Password = configuration["RabbitMQ:Password"],
+                Ssl = new SslOption { Enabled = false }
+            };
+
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
+            _logger.LogInformation("RabbitMQ connection established successfully");
+        }
+        catch (BrokerUnreachableException ex)
+        {
+            _logger.LogError(ex, "RabbitMQ broker is unreachable");
+            throw new Exception("RabbitMQ service is currently unavailable", ex);
+        }
+        catch (AuthenticationFailureException ex)
+        {
+            _logger.LogError(ex, "RabbitMQ authentication failed");
+            throw new Exception("Failed to authenticate with RabbitMQ service", ex);
         }
         catch (Exception ex)
         {
-            throw new Exception($"RabbitMQ bağlantısı kurulamadı: {ex.Message}", ex);
+            _logger.LogError(ex, "Failed to initialize RabbitMQ connection");
+            throw new Exception("Failed to initialize message queue service", ex);
         }
     }
 
-    public void PublishMessage<T>(string queueName, T message)
+    public async Task PublishMessageAsync<T>(string queueName, T message)
     {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(RabbitMQService));
+        }
+
         try
         {
-            _channel.QueueDeclare(queueName,
-                durable: true,
-                exclusive: false,
-                autoDelete: false);
+            await Task.Run(() =>
+            {
+                _channel.QueueDeclare(queueName,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false);
 
-            var json = JsonSerializer.Serialize(message);
-            var body = Encoding.UTF8.GetBytes(json);
+                var json = JsonSerializer.Serialize(message);
+                var body = Encoding.UTF8.GetBytes(json);
 
-            _channel.BasicPublish(
-                exchange: "",
-                routingKey: queueName,
-                basicProperties: null,
-                body: body);
+                var properties = _channel.CreateBasicProperties();
+                properties.Persistent = true;
+
+                _channel.BasicPublish(
+                    exchange: "",
+                    routingKey: queueName,
+                    basicProperties: properties,
+                    body: body);
+
+                _logger.LogInformation("Message published successfully to queue: {QueueName}", queueName);
+            });
         }
         catch (Exception ex)
         {
-            throw new Exception($"Mesaj gönderilemedi: {ex.Message}", ex);
+            _logger.LogError(ex, "Failed to publish message to queue: {QueueName}", queueName);
+            throw new Exception($"Failed to publish message to queue: {queueName}", ex);
         }
     }
 
-    // Dispose pattern implementasyonu
-    private bool disposed = false;
-
-    protected virtual void Dispose(bool disposing)
+    public async ValueTask DisposeAsync()
     {
-        if (!disposed)
+        if (_disposed)
         {
-            if (disposing)
-            {
-                if (_channel != null && _channel.IsOpen)
-                    _channel.Close();
-                if (_connection != null && _connection.IsOpen)
-                    _connection.Close();
-            }
-            disposed = true;
+            return;
         }
-    }
 
-    public void Dispose()
-    {
-        Dispose(true);
+        if (_channel?.IsOpen == true)
+        {
+            await Task.Run(() => _channel.Close());
+        }
+
+        if (_connection?.IsOpen == true)
+        {
+            await Task.Run(() => _connection.Close());
+        }
+
+        _disposed = true;
         GC.SuppressFinalize(this);
     }
 }

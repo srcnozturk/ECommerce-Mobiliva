@@ -1,6 +1,6 @@
-﻿namespace ECommerceAPI.Core.Interfaces;
+namespace ECommerceAPI.Core.Interfaces;
 
-public interface IRabbitMQService
+public interface IRabbitMQService : IAsyncDisposable
 {
-    void PublishMessage<T>(string queueName, T message);
+    Task PublishMessageAsync<T>(string queueName, T message);
 }

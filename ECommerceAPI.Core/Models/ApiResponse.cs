@@ -1,4 +1,4 @@
-﻿namespace ECommerceAPI.Core;
+namespace ECommerceAPI.Core;
 
 public class ApiResponse<T>
 {
@@ -6,8 +6,7 @@ public class ApiResponse<T>
     public string ResultMessage { get; set; }
     public string ErrorCode { get; set; }
     public T Data { get; set; }
-    public bool Success { get; set; }
-    public string Message { get; set; }
+    public bool Success => Status == Status.Success;
 }
 
 public enum Status

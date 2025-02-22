@@ -8,8 +8,21 @@ using ECommerceAPI.Infrastructure.Repositories;
 using ECommerceAPI.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/ecommerce-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 var connectionString = builder.Configuration.GetConnectionString("Mobiliva-DB");
 

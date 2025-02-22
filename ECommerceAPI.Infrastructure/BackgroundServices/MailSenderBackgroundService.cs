@@ -1,7 +1,8 @@
-﻿using ECommerceAPI.Core.Interfaces;
+using ECommerceAPI.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client;
 using System.Text.Json;
@@ -15,27 +16,40 @@ public class MailSenderBackgroundService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnection _connection;
     private readonly IModel _channel;
+    private readonly ILogger<MailSenderBackgroundService> _logger;
 
     public MailSenderBackgroundService(
         IServiceProvider serviceProvider,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<MailSenderBackgroundService> logger)
     {
         _serviceProvider = serviceProvider;
+        _logger = logger;
 
-        var factory = new ConnectionFactory
+        try
         {
-            HostName = configuration["RabbitMQ:Host"],
-            UserName = configuration["RabbitMQ:Username"],
-            Password = configuration["RabbitMQ:Password"]
-        };
+            var factory = new ConnectionFactory
+            {
+                HostName = configuration["RabbitMQ:Host"],
+                UserName = configuration["RabbitMQ:Username"],
+                Password = configuration["RabbitMQ:Password"]
+            };
 
-        _connection = factory.CreateConnection();
-        _channel = _connection.CreateModel();
-        _channel.QueueDeclare("SendMail", durable: true, exclusive: false, autoDelete: false);
+            _connection = factory.CreateConnection();
+            _channel = _connection.CreateModel();
+            _channel.QueueDeclare("SendMail", durable: true, exclusive: false, autoDelete: false);
+            _logger.LogInformation("RabbitMQ connection established for MailSenderBackgroundService");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize RabbitMQ connection for MailSenderBackgroundService");
+            throw;
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("MailSenderBackgroundService started");
         var consumer = new EventingBasicConsumer(_channel);
 
         consumer.Received += async (model, ea) =>
@@ -44,6 +58,8 @@ public class MailSenderBackgroundService : BackgroundService
             var message = Encoding.UTF8.GetString(body);
             var emailMessage = JsonSerializer.Deserialize<EmailMessageDto>(message);
 
+            _logger.LogInformation("Processing email message for recipient: {Recipient}", emailMessage.To);
+
             using (var scope = _serviceProvider.CreateScope())
             {
                 var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
@@ -51,9 +67,11 @@ public class MailSenderBackgroundService : BackgroundService
                 {
                     await emailService.SendEmailAsync(emailMessage);
                     _channel.BasicAck(ea.DeliveryTag, false);
+                    _logger.LogInformation("Email sent successfully to: {Recipient}", emailMessage.To);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Failed to send email to: {Recipient}", emailMessage.To);
                     _channel.BasicNack(ea.DeliveryTag, false, true);
                 }
             }
@@ -67,5 +85,7 @@ public class MailSenderBackgroundService : BackgroundService
         {
             await Task.Delay(1000, stoppingToken);
         }
+
+        _logger.LogInformation("MailSenderBackgroundService stopping");
     }
 }

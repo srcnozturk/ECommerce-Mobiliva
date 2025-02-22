@@ -47,7 +47,8 @@ public class ExceptionMiddleware
                 ErrorCodes.ServerError)
         };
 
-        context.Response.StatusCode = int.Parse(response.ErrorCode);
+        var errorCode = response.GetType().GetProperty("ErrorCode")?.GetValue(response)?.ToString();
+        context.Response.StatusCode = int.TryParse(errorCode, out var statusCode) ? statusCode : 500;
         await context.Response.WriteAsJsonAsync(response);
     }
 }
