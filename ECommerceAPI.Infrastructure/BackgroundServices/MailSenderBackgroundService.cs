@@ -8,6 +8,7 @@ using RabbitMQ.Client;
 using System.Text.Json;
 using ECommerceAPI.Core.Dtos;
 using System.Text;
+using ECommerceAPI.Core.Models.Email;
 
 namespace ECommerceAPI.Infrastructure.BackgroundServices;
 
@@ -71,7 +72,7 @@ public class MailSenderBackgroundService : BackgroundService
         {
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
-            var emailMessage = JsonSerializer.Deserialize<EmailMessageDto>(message);
+            var emailMessage = JsonSerializer.Deserialize<EmailMessage>(message);
 
             _logger.LogInformation("Processing email message for recipient: {Recipient}", emailMessage.To);
 

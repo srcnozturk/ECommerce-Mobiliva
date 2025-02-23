@@ -1,4 +1,4 @@
-using ECommerceAPI.Core.Dtos;
+using ECommerceAPI.Core.Models.Email;
 
 namespace ECommerceAPI.Core.Interfaces;
 
@@ -13,5 +13,5 @@ public interface IEmailService
     /// </summary>
     /// <param name="emailMessage">The email message containing recipient, subject, and body</param>
     /// <returns>A task representing the asynchronous operation</returns>
-    Task SendEmailAsync(EmailMessageDto emailMessage);
+    Task SendEmailAsync(EmailMessage emailMessage);
 }

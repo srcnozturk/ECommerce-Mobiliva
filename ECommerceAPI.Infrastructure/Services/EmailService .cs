@@ -1,5 +1,5 @@
-﻿using ECommerceAPI.Core.Dtos;
-using ECommerceAPI.Core.Interfaces;
+﻿using ECommerceAPI.Core.Interfaces;
+using ECommerceAPI.Core.Models.Email;
 using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Mail;
@@ -15,7 +15,7 @@ public class EmailService : IEmailService
         _configuration = configuration;
     }
 
-    public async Task SendEmailAsync(EmailMessageDto emailMessage)
+    public async Task SendEmailAsync(EmailMessage emailMessage)
     {
         var smtpClient = new SmtpClient(_configuration["Email:SmtpServer"])
         {
