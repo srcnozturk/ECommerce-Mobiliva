@@ -11,6 +11,10 @@ using System.Text;
 
 namespace ECommerceAPI.Infrastructure.BackgroundServices;
 
+/// <summary>
+/// Background service that listens for email messages from RabbitMQ queue and processes them.
+/// Implements reliable email sending with acknowledgment and retry mechanisms.
+/// </summary>
 public class MailSenderBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
@@ -18,6 +22,12 @@ public class MailSenderBackgroundService : BackgroundService
     private readonly IModel _channel;
     private readonly ILogger<MailSenderBackgroundService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the MailSenderBackgroundService
+    /// </summary>
+    /// <param name="serviceProvider">Service provider for dependency injection</param>
+    /// <param name="configuration">Configuration for RabbitMQ connection settings</param>
+    /// <param name="logger">Logger for the service</param>
     public MailSenderBackgroundService(
         IServiceProvider serviceProvider,
         IConfiguration configuration,
@@ -47,6 +57,11 @@ public class MailSenderBackgroundService : BackgroundService
         }
     }
 
+    /// <summary>
+    /// Executes the background service, processing email messages from the RabbitMQ queue
+    /// </summary>
+    /// <param name="stoppingToken">Token to monitor for cancellation requests</param>
+    /// <returns>A task representing the background operation</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("MailSenderBackgroundService started");

@@ -7,8 +7,16 @@ using Microsoft.Extensions.Logging;
 
 namespace ECommerceAPI.Application.Queries;
 
+/// <summary>
+/// Query to retrieve products, optionally filtered by category
+/// </summary>
+/// <param name="Category">Optional category to filter products by</param>
 public record GetProductsQuery(string? Category) : IRequest<ApiResponse<List<ProductDto>>>;
 
+/// <summary>
+/// Handler for processing product retrieval queries.
+/// Implements caching strategy to improve performance.
+/// </summary>
 public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ApiResponse<List<ProductDto>>>
 {
     private readonly IProductRepository _productRepository;
@@ -17,6 +25,13 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ApiResp
     private readonly ILogger<GetProductsQueryHandler> _logger;
     private const string ALL_PRODUCTS_CACHE_KEY = "all-products";
 
+    /// <summary>
+    /// Initializes a new instance of the GetProductsQueryHandler
+    /// </summary>
+    /// <param name="productRepository">Repository for product operations</param>
+    /// <param name="cacheService">Service for caching operations</param>
+    /// <param name="mapper">AutoMapper instance for object mapping</param>
+    /// <param name="logger">Logger for the handler</param>
     public GetProductsQueryHandler(
         IProductRepository productRepository,
         ICacheService cacheService,
@@ -29,6 +44,12 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ApiResp
         _logger = logger;
     }
 
+    /// <summary>
+    /// Handles the retrieval of products with caching support
+    /// </summary>
+    /// <param name="query">The query containing optional category filter</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>API response containing the list of products</returns>
     public async Task<ApiResponse<List<ProductDto>>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
     {
         try

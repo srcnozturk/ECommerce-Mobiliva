@@ -9,8 +9,16 @@ using Microsoft.Extensions.Logging;
 
 namespace ECommerceAPI.Application.Commands;
 
+/// <summary>
+/// Command to create a new order in the system
+/// </summary>
+/// <param name="Request">The order creation request containing customer and order details</param>
 public record CreateOrderCommand(CreateOrderRequest Request) : IRequest<ApiResponse<Guid>>;
 
+/// <summary>
+/// Handler for processing order creation commands.
+/// Creates a new order and sends a confirmation email via RabbitMQ.
+/// </summary>
 public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, ApiResponse<Guid>>
 {
     private readonly IOrderRepository _orderRepository;
@@ -18,6 +26,13 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
     private readonly IMapper _mapper;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the CreateOrderCommandHandler
+    /// </summary>
+    /// <param name="orderRepository">Repository for order operations</param>
+    /// <param name="rabbitMQService">Service for sending messages to RabbitMQ</param>
+    /// <param name="mapper">AutoMapper instance for object mapping</param>
+    /// <param name="logger">Logger for the handler</param>
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
         IRabbitMQService rabbitMQService,
@@ -30,6 +45,12 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         _logger = logger;
     }
 
+    /// <summary>
+    /// Handles the creation of a new order and sends a confirmation email
+    /// </summary>
+    /// <param name="command">The create order command containing the order details</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>API response containing the ID of the created order</returns>
     public async Task<ApiResponse<Guid>> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
     {
         try
