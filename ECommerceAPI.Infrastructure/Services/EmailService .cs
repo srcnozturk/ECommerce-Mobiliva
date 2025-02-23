@@ -1,7 +1,4 @@
-﻿using ECommerceAPI.Core.Interfaces;
-using ECommerceAPI.Core.Models.Email;
-using Microsoft.Extensions.Configuration;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 
 namespace ECommerceAPI.Infrastructure.Services;

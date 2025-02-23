@@ -1,7 +1,4 @@
-﻿using ECommerceAPI.Core.Interfaces;
-using Microsoft.EntityFrameworkCore;
-
-namespace ECommerceAPI.Infrastructure.Repositories;
+﻿namespace ECommerceAPI.Infrastructure.Repositories;
 
 public class GenericRepository<T> : IGenericRepository<T> where T : class
 {

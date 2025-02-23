@@ -1,8 +1,4 @@
-﻿using ECommerceAPI.Core.Entities;
-using ECommerceAPI.Core.Interfaces;
-using Microsoft.EntityFrameworkCore;
-
-namespace ECommerceAPI.Infrastructure.Repositories;
+﻿namespace ECommerceAPI.Infrastructure.Repositories;
 
 public class OrderRepository : GenericRepository<OrderEntity>, IOrderRepository
 {

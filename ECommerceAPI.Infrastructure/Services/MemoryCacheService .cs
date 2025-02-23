@@ -1,5 +1,4 @@
-﻿using ECommerceAPI.Core.Interfaces;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 
 namespace ECommerceAPI.Infrastructure.Services;
 

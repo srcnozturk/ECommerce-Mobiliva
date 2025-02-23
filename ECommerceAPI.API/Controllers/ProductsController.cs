@@ -1,11 +1,7 @@
 using ECommerceAPI.Application;
-using ECommerceAPI.Application.Commands;
 using ECommerceAPI.Application.Dtos;
-using ECommerceAPI.Application.Queries;
 using ECommerceAPI.Core;
 using FluentValidation;
-using MediatR;
-using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerceAPI.API.Controllers
 {

@@ -1,7 +1,3 @@
-using ECommerceAPI.Core.Entities;
-using ECommerceAPI.Core.Interfaces;
-using Microsoft.EntityFrameworkCore;
-
 namespace ECommerceAPI.Infrastructure.Repositories;
 
 /// <summary>

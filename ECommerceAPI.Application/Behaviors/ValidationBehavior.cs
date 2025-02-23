@@ -1,6 +1,3 @@
-using FluentValidation;
-using MediatR;
-
 namespace ECommerceAPI.Application.Behaviors;
 
 /// <summary>

@@ -1,14 +1,4 @@
-using ECommerceAPI.Core.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using RabbitMQ.Client.Events;
-using RabbitMQ.Client;
-using System.Text.Json;
-using ECommerceAPI.Core.Dtos;
-using System.Text;
-using ECommerceAPI.Core.Models.Email;
 
 namespace ECommerceAPI.Infrastructure.BackgroundServices;
 

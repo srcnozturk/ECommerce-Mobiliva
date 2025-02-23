@@ -1,10 +1,4 @@
-using ECommerceAPI.Core.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
-using System.Text.Json;
-using System.Text;
 
 namespace ECommerceAPI.Infrastructure.Services;
 
