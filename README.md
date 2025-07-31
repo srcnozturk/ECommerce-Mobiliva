@@ -45,31 +45,6 @@ ECommerceAPI/
    - RabbitMQ Server
    - Redis Server (Port: 6380)
 
-2. **Configuration**
-   - Update database connection in `appsettings.json`:
-     ```json
-     "ConnectionStrings": {
-       "Mobiliva-DB": "Server=localhost;Port=3308;Database=MobilivaDb;User Id=root;Password=Password1*;"
-     }
-     ```
-   - Configure RabbitMQ and Redis settings
-   - Set up email configuration for notifications
-
-3. **Run Migrations**
-   ```bash
-   dotnet ef database update
-   ```
-
-4. **Run the API**
-   ```bash
-   dotnet run --project ECommerceAPI.API
-   ```
-
-## API Endpoints
-
-- `GET /api/products` - Get all products (optional category filter)
-- `POST /api/orders` - Create a new order
-
 ## Key Features in Detail
 
 - **Caching**: Products are cached in Redis for improved performance
